@@ -9,6 +9,6 @@ namespace Application_layer.Interface
 {
     public interface IUserRepository
     {
-        void Register(UserModel user);
+        int Register(UserModel user);
     }
 }

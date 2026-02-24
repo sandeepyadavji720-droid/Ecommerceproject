@@ -40,6 +40,35 @@ namespace Infrastructure_layer.Repository
 
             return null; 
         }
+
+        public void UpdateUser(string name, string email)
+        {
+            using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand("sp_Users", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@name", name);
+            cmd.Parameters.AddWithValue("@email", email);
+            cmd.Parameters.AddWithValue("@action", 3); 
+
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+
+        public void DeleteUser(string email)
+        {
+            using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand("sp_Users", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@email", email);
+            cmd.Parameters.AddWithValue("@action", 4);
+
+            con.Open();
+            cmd.ExecuteNonQuery();
+        }
+
+
     }
     }
 

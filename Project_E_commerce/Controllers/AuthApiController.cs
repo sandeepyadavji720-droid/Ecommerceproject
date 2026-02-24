@@ -1,10 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Application_layer.Interface;
 using Domain_layer.Model;
-using Application_layer.Interface;
-
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -29,11 +29,60 @@ namespace Project_E_commerce.Controllers
             _gcrepo = gcrepo;
             _gcwrepo = gcwrepo;
         }
+
+        [HttpPost("UpdateCategory")]
+        public IActionResult UpdateCategory([FromForm] CategoryModel model)
+        {
+            if (model.image == null)
+                return BadRequest("Image not received");
+
+
+
+            string fileName = model.image.FileName;
+
+            string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/content/images");
+
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+
+            string fullPath = Path.Combine(folder, fileName);
+
+            using (var stream = new FileStream(fullPath, FileMode.Create))
+            {
+                model.image.CopyTo(stream);
+            }
+
+
+            model.imagepath = "/content/images/" + fileName;
+
+        
+
+        var result = _crepo.UpdateCategory(model);
+
+            return Ok();
+        }
+
+
+        [HttpPost("DeleteCategory")]
+        public IActionResult DeleteCategory([FromForm]int id)
+        {
+            var result = _crepo.DeleteCategory(id);
+
+            if (result > 0)
+                return Ok(new { success = true, message = "Deleted Successfully" });
+
+            return BadRequest();
+        }
+
+
+
+
+
         [HttpPost("Register")]
         public IActionResult Register([FromBody] UserModel user)
         {
-            _repo.Register(user);
-            return Ok();
+          int res= _repo.Register(user);
+            return Ok(res);
         }
         [HttpPost("Login")]
         public async Task<IActionResult> Login([FromBody] LoginModel model)

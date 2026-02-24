@@ -10,5 +10,8 @@ namespace Application_layer.Interface
     public interface ICategoryRepository
     {
         int AddCategory(CategoryModel category);
+        int UpdateCategory(CategoryModel category);
+        int DeleteCategory(int categoryId);
+        CategoryModel GetCategoryById(int categoryId);
     }
 }

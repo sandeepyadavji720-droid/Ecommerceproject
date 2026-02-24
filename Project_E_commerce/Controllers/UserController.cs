@@ -15,6 +15,20 @@ namespace Project_E_commerce.Controllers
         { 
             _userService = singleUser;
         }
+        [HttpPost]
+        public IActionResult UpdateProfile(string name, string email)
+        {
+            _userService.UpdateUser(name, email);
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        public IActionResult DeleteProfile()
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            _userService.DeleteUser(email);
+            return Json(new { success = true });
+        }
         public IActionResult Profile()
         {
             var email = User.FindFirstValue(ClaimTypes.Email);

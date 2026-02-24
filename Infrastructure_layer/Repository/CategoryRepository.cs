@@ -34,6 +34,59 @@ namespace Infrastructure_layer.Repository
            int res= cmd.ExecuteNonQuery();
             return res;
         }
-        
+        // ================= UPDATE =================
+        public int UpdateCategory(CategoryModel category)
+        {
+            using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand("sp_category", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@category_id", category.CategoryId);
+            cmd.Parameters.AddWithValue("@category_name", category.categoryname);
+            cmd.Parameters.AddWithValue("@imagepath", category.imagepath);
+            cmd.Parameters.AddWithValue("@action",3);
+
+            con.Open();
+            return cmd.ExecuteNonQuery();
+        }
+
+        // ================= DELETE =================
+        public int DeleteCategory(int categoryId)
+        {
+            using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand("sp_category", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@category_id", categoryId);
+            cmd.Parameters.AddWithValue("@action", 4);
+
+            con.Open();
+            return cmd.ExecuteNonQuery();
+        }
+
+        // ================= GET BY ID =================
+        public CategoryModel GetCategoryById(int categoryId)
+        {
+            CategoryModel model = new CategoryModel();
+
+            using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand("sp_category", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@category_id", categoryId);
+            cmd.Parameters.AddWithValue("@action", 5);
+
+            con.Open();
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            if (reader.Read())
+            {
+                model.categoryname = reader["CategoryName"].ToString();
+                model.imagepath = reader["ImagePath"].ToString();
+            }
+
+            return model;
+        }
+
     }
 }

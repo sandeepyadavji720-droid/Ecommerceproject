@@ -1,32 +1,153 @@
 ﻿@model Domain_layer.Model.UserModel
-@{
-    ViewBag.Title = "My Profile";
-}
+<head>
+    <style>
+        .profile-card {
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+        }
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+            .profile-card:hover {
+                transform: translateY(-8px);
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            }
+    </style>
+</head>
+<div class="container d-flex justify-content-center align-items-center" style="min-height:60vh;">
+    <div class="card shadow p-4 profile-card" style="width: 450px;">
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 text-center">
-
-            
-            <img src="~/content/"
+        <div class="text-center">
+            <img src="~/content/images/profile.png"
                  class="rounded-circle mb-3"
-                 style="width:120px; height:120px; object-fit:cover;"
-                 alt="Profile Picture">
+                 style="width:110px; height:110px; object-fit:cover;" />
+        </div>
 
-            <h4 class="fw-bold mb-1">@Model.name</h4>
+        <table class="table table-borderless mb-3">
+            <tr>
+                <th>Name</th>
+                <td id="userName">@Model.name</td>
+            </tr>
+            <tr>
+                <th>Email</th>
+                <td id="userEmail">@Model.email</td>
+            </tr>
+        </table>
 
-           
-            <p class="text-muted mb-0">@Model.email</p>
+        <div class="text-center">
+            <button class="btn btn-primary btn-sm me-2" onclick="openEdit()">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteUser()">Delete</button>
+        </div>
 
+    </div>
+</div>
+
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal">
+    <div class="modal-dialog">
+        <div class="modal-content p-3">
+            <h5>Edit Profile</h5>
+
+            <input type="text" id="editName" class="form-control mb-2" />
+            <input type="text" id="editEmail" class="form-control mb-3" />
+
+            <button class="btn btn-success" onclick="updateUser()">Save</button>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         </div>
     </div>
 </div>
 
-<style>
-    body {
-        background-color: #f8f9fc;
-        font-family: Arial, sans-serif;
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+
+    function openEdit() {
+        $("#editName").val($("#userName").text());
+        $("#editEmail").val($("#userEmail").text());
+
+        var modal = new bootstrap.Modal(document.getElementById('editModal'));
+        modal.show();
     }
-</style>
+
+    function updateUser() {
+
+        var name = $("#editName").val();
+        var email = $("#editEmail").val();
+
+        $.ajax({
+            url: '/User/UpdateProfile',
+            type: 'POST',
+            data: { name: name, email: email },
+            success: function () {
+
+                $("#userName").text(name);
+                $("#userEmail").text(email);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Updated!',
+                    text: 'Profile updated successfully',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            },
+            error: function () {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Something went wrong!'
+                });
+            }
+        });
+    }
+
+
+    function deleteUser() {
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to recover this account!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+
+            if (result.isConfirmed) {
+
+                $.ajax({
+                    url: '/User/DeleteProfile',
+                    type: 'POST',
+                    success: function () {
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted!',
+                            text: 'Your account has been deleted.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                        setTimeout(() => {
+                            window.location.href = "/Home/Login";
+                        }, 2000);
+                    },
+                    error: function () {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Failed to delete account.'
+                        });
+                    }
+                });
+
+            }
+        });
+    }
+
+</script>

@@ -20,7 +20,7 @@ namespace Infrastructure_layer.Repository
         {
             _connection = connection;
         }
-        public void Register(UserModel user)
+        public int Register(UserModel user)
         {
             using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
             using SqlCommand cmd = new SqlCommand("sp_Users", con);
@@ -29,10 +29,12 @@ namespace Infrastructure_layer.Repository
             cmd.Parameters.AddWithValue("@password", user.password);
             cmd.Parameters.AddWithValue("@email", user.email);
             cmd.Parameters.AddWithValue("@role", user.role);
+            cmd.Parameters.AddWithValue("@action", 1);
 
            
             con.Open();
-            cmd.ExecuteNonQuery();
+           int res= cmd.ExecuteNonQuery();
+            return res;
         }
     }
 }

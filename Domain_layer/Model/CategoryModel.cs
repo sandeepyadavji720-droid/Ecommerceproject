@@ -13,5 +13,6 @@ namespace Domain_layer.Model
 
         public string? imagepath { get; set; }
         public IFormFile? image { get; set; }
+        public int? CategoryId { get; set; }
     }
 }

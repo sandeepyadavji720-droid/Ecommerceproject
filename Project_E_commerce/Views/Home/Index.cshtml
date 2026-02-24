@@ -52,7 +52,7 @@
              type:"POST",
              contentType:"application/json",
              data:JSON.stringify(data),
-             success:function(response){
+             success:function(res){
                   Swal.fire({
                        title: "Registration Done",
                        icon: "success",
@@ -60,7 +60,7 @@
                      });
                     
             },
-             error:function(response){
+             error:function(res){
               Swal.fire({
                        title: "Registration not successfull",
                        icon: "success",
