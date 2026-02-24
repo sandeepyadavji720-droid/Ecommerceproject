@@ -1,0 +1,74 @@
+﻿
+
+<div class="container">
+    <div class="form-container mx-auto">
+        <h3 class="text-center">Login Form</h3>
+        <form method="POST" id="loginForm">
+            <!-- Email Field -->
+            <div class="mb-3">
+                <label for="email" class="form-label">Email address</label>
+                <input type="email" class="form-control " id="email" name="email" placeholder="Enter your email" required>
+            </div>
+
+            <!-- Password Field -->
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control  " id="password" name="password" placeholder="Enter your password" required>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="">
+                <button type="submit" class="btn btn-primary ">Login</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+    $("#loginForm").submit(function(e) {
+        e.preventDefault();
+        var data = {
+            email: $("#email").val(),
+            password: $("#password").val()
+        };
+
+        $.ajax({
+            url: "/api/AuthApi/Login",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            xhrFields: { withCredentials: true }, 
+            success: function(res) {
+
+               Swal.fire({
+                    icon: 'success',
+                    title: 'Login Successful',
+                    text: 'Welcome back!',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                   
+                    if(res.role.toLowerCase() === "admin") {
+                        window.location.href = "/admin/dashboard";
+                    } else {
+                        window.location.href = "/user/dashboard";
+                    }
+                });
+            },
+            error: function(res) {
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Login Failed',
+                    text: res.responseJSON?.message || 'Invalid email or password.'
+                });
+            }
+        });
+    });
+</script>
+   
+
+

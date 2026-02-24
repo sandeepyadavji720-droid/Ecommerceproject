@@ -1,0 +1,55 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>@ViewBag.Title</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+
+    <div class="d-flex">
+
+        <!-- Sidebar -->
+        <div class="bg-secondary text-white p-3 vh-100" style="width:250px;">
+            <h4 class="text-center mb-4">User Panel</h4>
+
+            <ul class="nav flex-column">
+
+                <li class="nav-item mb-2">
+                    <a class="nav-link text-white" href="/user/dashboard">
+                        🏠 Dashboard
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a class="nav-link text-white" href="/user/category">
+                        🛍 View Products
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a class="nav-link text-white" href="/user/profile">
+                        👤 My Profile
+                    </a>
+                </li>
+
+                <li class="nav-item mt-4">
+                    <a class="nav-link text-warning" href="/User/logout">
+                        🚪 Logout
+                    </a>
+                </li>
+
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-grow-1 p-4">
+            @RenderBody()
+        </div>
+
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

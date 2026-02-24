@@ -1,0 +1,74 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+    <div class="container">
+        <div class="form-container mx-auto">
+            <h3 class="text-center">Registration Form</h3>
+            <form method="POST" id="registerForm" >
+                <!-- Name Field -->
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name</label>
+                <input type="text" class="form-control  " id="name" name="name" placeholder="Enter your name">
+                </div>
+
+                <!-- Email Field -->
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email address</label>
+                <input type="email" class="form-control  " id="email" name="email" placeholder="Enter your email">
+                </div>
+
+                <!-- Password Field -->
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control  " id="password" name="password" placeholder="Enter your password">
+                </div>
+
+                <!-- Role Field -->
+                <div class="mb-3">
+                    <label for="role" class="form-label">Role</label>
+                <input type="text" class="form-control " id="role" name="role" placeholder="Enter your role" />
+                </div>
+
+                <!-- Submit Button -->
+                <div class="">
+                    <button type="submit" class="btn btn-primary">Register</button>
+                </div>
+            </form>
+        </div>
+    </div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    $("#registerForm").submit(function(e){
+         e.preventDefault();
+         var data={
+             name:$("#name").val(),
+             email:$("#email").val(),
+             password:$("#password").val(),
+             role:$("#role").val(),
+         };
+         $.ajax({
+             url:"/api/AuthApi/Register",
+             type:"POST",
+             contentType:"application/json",
+             data:JSON.stringify(data),
+             success:function(response){
+                  Swal.fire({
+                       title: "Registration Done",
+                       icon: "success",
+                       draggable: true
+                     });
+                    
+            },
+             error:function(response){
+              Swal.fire({
+                       title: "Registration not successfull",
+                       icon: "success",
+                       draggable: true
+    });
+             }
+         })
+     })
+    </script>
+
+  

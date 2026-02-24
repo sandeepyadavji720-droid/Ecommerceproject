@@ -1,0 +1,113 @@
+﻿@{
+    Layout = "User_layout";
+    var categoryId = ViewBag.CategoryId;
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+<style>
+    .product-card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+        .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+
+    .product-img {
+        height: 220px;
+        object-fit: cover;
+        transition: 0.3s;
+    }
+
+    .product-card:hover .product-img {
+        transform: scale(1.05);
+    }
+
+    .price-tag {
+        font-size: 18px;
+        font-weight: bold;
+        color: #28a745;
+    }
+
+    .buy-btn {
+        background: linear-gradient(45deg, #ff416c, #ff4b2b);
+        border: none;
+        color: white;
+        border-radius: 30px;
+        padding: 8px 20px;
+        transition: 0.3s;
+    }
+
+        .buy-btn:hover {
+            background: linear-gradient(45deg, #ff4b2b, #ff416c);
+            transform: scale(1.05);
+        }
+</style>
+
+<h3 class="mb-4">Products</h3>
+
+<div class="row" id="productContainer"></div>
+
+<script>
+    $(document).ready(function () {
+
+        var categoryId = "@categoryId";
+
+        $.ajax({
+            url: "/api/AuthApi/GetProductsByCategory/" + categoryId,
+            type: "GET",
+            success: function (res) {
+
+                $("#productContainer").empty();
+
+                if (res.length == 0) {
+                    $("#productContainer").html("<h5 class='text-center'>No Products Found</h5>");
+                    return;
+                }
+
+                $.each(res, function (i, item) {
+
+                    $("#productContainer").append(`
+                        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                            <div class="card product-card h-100 shadow-sm">
+
+                                <div class="overflow-hidden">
+                                    <img src="${item.imagepath}"
+                                         class="card-img-top product-img" />
+                                </div>
+
+                                <div class="card-body text-center d-flex flex-column">
+
+                                    <h6 class="fw-bold">${item.productname}</h6>
+
+                                    <p class="price-tag mb-3">₹ ${item.price}</p>
+
+                                    <div class="mt-auto">
+                                        <button class="btn buy-btn w-100"
+                                                onclick="buyProduct('${item.productname}', ${item.price})">
+                                            🛒 Buy Now
+                                        </button>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+                    `);
+
+                });
+            }
+        });
+
+    });
+
+    function buyProduct(name, price) {
+        alert("You selected: " + name + " | Price: ₹ " + price);
+    }
+</script>
