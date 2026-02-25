@@ -38,6 +38,7 @@ namespace Infrastructure_layer.Repository
                 model.productname = reader["product_name"].ToString();
                 model.imagepath = reader["imagepath"].ToString();
                 model.price =Convert.ToDecimal(reader["price"].ToString());
+                model.product_id =Convert.ToInt32(reader["product_id"].ToString());
                 list.Add(model);
             }
             return list;

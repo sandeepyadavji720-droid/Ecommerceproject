@@ -29,6 +29,66 @@ namespace Project_E_commerce.Controllers
             _gcrepo = gcrepo;
             _gcwrepo = gcwrepo;
         }
+        [HttpGet("GetProductById/{id}")]
+        public IActionResult GetProductById(int id)
+        {
+            var data = _prepo.GetProductById(id);
+
+            if (data == null)
+                return NotFound();
+
+            return Ok(data);
+        }
+
+
+        [HttpPost("UpdateProduct")]
+        public IActionResult UpdateProduct([FromForm] ProductModel model)
+        {
+           
+           
+            if (model.image != null)
+            {
+                string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/content/products");
+
+                if (!Directory.Exists(folderPath))
+                {
+                    Directory.CreateDirectory(folderPath);
+                }
+
+                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(model.image.FileName);
+                string fullPath = Path.Combine(folderPath, fileName);
+
+                using (var stream = new FileStream(fullPath, FileMode.Create))
+                {
+                    model.image.CopyTo(stream);
+                }
+
+               
+                model.imagepath = "/content/products/" + fileName;
+            }
+            else if (!string.IsNullOrEmpty(model.imagepath))
+            {
+               
+                model.imagepath = model.imagepath;
+            }
+
+           
+            _prepo.UpdateProduct(model);
+
+            return Ok();
+        }
+
+
+        [HttpPost("DeleteProduct/{id}")]
+        public IActionResult DeleteProduct(int id)
+        {
+            _prepo.DeleteProduct(id);
+            return Ok();
+        }
+
+
+
+
 
         [HttpPost("UpdateCategory")]
         public IActionResult UpdateCategory([FromForm] CategoryModel model)

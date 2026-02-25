@@ -14,6 +14,7 @@ namespace Domain_layer.Model
 
         public decimal? price { get; set; }
         public int product_id { get; set; }
+        public int ProductId { get; set; }
 
         public int? categoryId { get; set; }
 

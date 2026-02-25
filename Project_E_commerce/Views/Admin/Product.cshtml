@@ -1,114 +1,4 @@
-﻿@* @{
-    Layout = "Admin_layout";
-    var categoryId = ViewBag.CategoryId;
-}
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="~/lib/jquery/dist/jquery.min.js"></script>
-
-<h3 class="mb-4 text-primary fw-bold">Products</h3>
-
-<div class="row g-4" id="productContainer"></div>
-
-<script>
-    $(document).ready(function () {
-
-        var categoryId = "@categoryId";
-
-        $.ajax({
-            url: "/api/AuthApi/GetProductsByCategory/" + categoryId,
-            type: "GET",
-            success: function (res) {
-
-                $("#productContainer").empty();
-
-                if(res.length == 0){
-                    $("#productContainer").html("<h5 class='text-muted text-center'>No Products Found</h5>");
-                    return;
-                }
-
-                $.each(res, function (i, item) {
-
-                    $("#productContainer").append(`
-                        <div class="col-lg-3 col-md-4 col-sm-6">
-                            <div class="card product-card h-100 shadow-sm rounded-4 overflow-hidden">
-
-                                <div class="card-img-wrapper position-relative">
-                                    <img src="${item.imagepath}"
-                                         class="card-img-top img-fluid"
-                                         alt="${item.productname}">
-                                    <div class="overlay d-flex justify-content-center align-items-center">
-                                        <i class="bi bi-eye-fill text-white fs-2"></i>
-                                    </div>
-                                </div>
-
-                                <div class="card-body text-center">
-                                    <h6 class="fw-semibold mb-2">${item.productname}</h6>
-                                    <p class="text-success fw-bold mb-0">₹ ${item.price}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `);
-
-                });
-            }
-        });
-
-    });
-</script>
-
-<style>
-    body {
-        background-color: #f8f9fa;
-    }
-
-    .product-card {
-        transition: transform 0.3s, box-shadow 0.3s;
-        cursor: pointer;
-    }
-
-        .product-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
-        }
-
-    .card-img-wrapper {
-        position: relative;
-        overflow: hidden;
-    }
-
-    .card-img-top {
-        height: 200px;
-        object-fit: cover;
-        transition: transform 0.3s;
-    }
-
-    .product-card:hover .card-img-top {
-        transform: scale(1.05);
-    }
-
-    .overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.2);
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-
-    .product-card:hover .overlay {
-        opacity: 1;
-    }
-
-    .card-body h6 {
-        color: #343a40;
-        font-size: 1rem;
-    }
-
-   
-</style> *@ 
+﻿
 @{
     Layout = "Admin_layout";
     var categoryId = ViewBag.CategoryId;
@@ -120,15 +10,13 @@
 
 <div class="container mt-4">
 
-    <div class="d-flex justify-content-between mb-3">
-        <h3 class="text-primary fw-bold">Products</h3>
-    </div>
+    <h3 class="mb-4 text-primary fw-bold">Products</h3>
 
     <div class="row g-4" id="productContainer"></div>
 
 </div>
 
-<!-- ================= UPDATE MODAL ================= -->
+<!-- ================= EDIT MODAL ================= -->
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -140,26 +28,26 @@
 
             <div class="modal-body">
 
-                <input type="hidden" id="editProductId">
+                <input type="hidden" id="editProductId" />
 
                 <div class="mb-3">
                     <label>Product Name</label>
-                    <input type="text" id="editProductName" class="form-control">
+                    <input type="text" id="editProductName" class="form-control" />
                 </div>
 
                 <div class="mb-3">
                     <label>Price</label>
-                    <input type="number" id="editPrice" class="form-control">
+                    <input type="number" id="editPrice" class="form-control" />
                 </div>
 
                 <div class="mb-3">
                     <label>Image</label>
-                    <input type="file" id="editImage" class="form-control">
+                    <input type="file" id="editImage" class="form-control" />
                 </div>
 
                 <div class="text-center mt-2">
                     <img id="previewImage"
-                         style="width:120px;height:120px;object-fit:cover;border-radius:10px;">
+                         style="width:120px;height:120px;object-fit:cover;border-radius:10px;" />
                 </div>
 
             </div>
@@ -188,7 +76,7 @@
 
             $("#productContainer").empty();
 
-            if (res.length == 0) {
+            if (res.length === 0) {
                 $("#productContainer").html("<h5>No Products Found</h5>");
                 return;
             }
@@ -200,6 +88,7 @@
                         <div class="card shadow-sm">
 
                             <img src="${item.imagepath}"
+                                 class="card-img-top"
                                  style="height:200px;object-fit:cover">
 
                             <div class="card-body text-center">
@@ -207,12 +96,12 @@
                                 <p class="text-success fw-bold">₹ ${item.price}</p>
 
                                 <button class="btn btn-warning btn-sm"
-                                    onclick="openEditModal(${item.productId})">
+                                    onclick="openEditModal(${item.product_id})">
                                     Edit
                                 </button>
 
                                 <button class="btn btn-danger btn-sm"
-                                    onclick="deleteProduct(${item.productId})">
+                                    onclick="deleteProduct(${item.product_id})">
                                     Delete
                                 </button>
                             </div>
@@ -224,17 +113,18 @@
         });
     }
 
-    // ================= OPEN MODAL WITH PREFILL =================
+    // ================= OPEN MODAL + PREFILL =================
+    
     function openEditModal(id) {
-
+        console.log("idd",id)
         $.get("/api/AuthApi/GetProductById/" + id, function (data) {
-
-            $("#editProductId").val(data.productId);
+           
+            $("#editProductId").val(data.product_id);
             $("#editProductName").val(data.productname);
             $("#editPrice").val(data.price);
             $("#previewImage").attr("src", data.imagepath);
 
-            var modal = new bootstrap.Modal(document.getElementById('editModal'));
+            var modal = new bootstrap.Modal(document.getElementById("editModal"));
             modal.show();
         });
     }
@@ -248,23 +138,28 @@
             reader.onload = function (e) {
                 $("#previewImage").attr("src", e.target.result);
             };
+
             reader.readAsDataURL(this.files[0]);
         }
     });
 
     // ================= UPDATE PRODUCT =================
-    function updateProduct() {
+       function updateProduct() {
 
         var formData = new FormData();
 
-        formData.append("ProductId", $("#editProductId").val());
-        formData.append("productname", $("#editProductName").val());
-        formData.append("price", $("#editPrice").val());
-        formData.append("categoryId", categoryId);
+        formData.append("product_id", parseInt($("#editProductId").val()));
+        formData.append("ProductName", $("#editProductName").val()); 
+        formData.append("Price", $("#editPrice").val());
+        formData.append("CategoryId", categoryId);
 
         var file = $("#editImage")[0].files[0];
         if (file) {
-            formData.append("image", file);
+            // New image selected → send as file
+            formData.append("Image", file);
+        } else {
+            // No new image → send old image path
+            formData.append("ImagePath", $("#previewImage").attr("src"));
         }
 
         $.ajax({
@@ -274,27 +169,55 @@
             contentType: false,
             processData: false,
             success: function () {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Updated Successfully!',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
 
-                alert("Updated Successfully");
-
-                var modal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+                var modal = bootstrap.Modal.getInstance(document.getElementById("editModal"));
                 modal.hide();
 
                 loadProducts();
+            },
+            error: function (err) {
+                console.error(err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Update Failed!',
+                    text: err.responseText
+                });
             }
         });
     }
 
     // ================= DELETE PRODUCT =================
-    function deleteProduct(id) {
+  function deleteProduct(id) {
 
-        if (confirm("Are you sure to delete?")) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "This product will be permanently deleted!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
 
             $.post("/api/AuthApi/DeleteProduct/" + id, function () {
-                alert("Deleted Successfully");
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Deleted Successfully!',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
                 loadProducts();
             });
         }
-    }
-
+    });
+}
 </script>

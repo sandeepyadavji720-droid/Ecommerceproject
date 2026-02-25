@@ -10,5 +10,8 @@ namespace Application_layer.Interface
     public interface IProductRepository
     {
         int AddProduct(ProductModel product);
+        int UpdateProduct(ProductModel model);
+        int DeleteProduct(int id);
+        ProductModel GetProductById(int id);
     }
 }
