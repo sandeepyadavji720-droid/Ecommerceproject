@@ -29,6 +29,31 @@ namespace Project_E_commerce.Controllers
             _gcrepo = gcrepo;
             _gcwrepo = gcwrepo;
         }
+
+
+        [HttpGet("GetAllUsers")]
+        public IActionResult GetAllUsers()
+        {
+            var data = _repo.GetAllUsers();
+            return Ok(data);
+        }
+
+        [HttpPost("UpdateUser")]
+        public IActionResult UpdateUser([FromBody] UserModel user)
+        {
+            int res = _repo.UpdateUser(user);
+            return Ok(res);
+        }
+
+        [HttpPost("DeleteUser")]
+        public IActionResult DeleteUser([FromBody] string email)
+        {
+            int res = _repo.DeleteUser(email);
+            return Ok(res);
+        }
+
+
+
         [HttpGet("GetProductById/{id}")]
         public IActionResult GetProductById(int id)
         {

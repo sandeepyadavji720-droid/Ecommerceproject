@@ -10,5 +10,8 @@ namespace Application_layer.Interface
     public interface IUserRepository
     {
         int Register(UserModel user);
+        List<UserModel> GetAllUsers();    
+        int UpdateUser(UserModel user);   
+        int DeleteUser(string email);
     }
 }

@@ -5,117 +5,145 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <div class="container mt-4">
 
-    <h3 class="mb-4 text-primary fw-bold">All Categories</h3>
+    <h3 class="mb-3 text-primary fw-bold">All Categories</h3>
 
+    <!-- ===== SEARCH FILTER ===== -->
+    <div class="mb-4">
+        <input type="text" id="searchCategory" class="form-control"
+               placeholder="🔍 Search categories by name...">
+    </div>
+
+    <!-- ===== CATEGORIES GRID ===== -->
     <div class="row g-4" id="categoryContainer"></div>
+
+    <!-- ===== CHARTS SECTION ===== -->
+    <h3 class="mb-4 text-primary fw-bold mt-5">Analytics</h3>
+    <div class="row g-4">
+
+        <!-- Monthly Sales Chart -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm rounded-4 p-3 h-100">
+                <h5 class="fw-bold mb-3">Monthly Sales</h5>
+                <canvas id="salesChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- User Status Chart -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm rounded-4 p-3 h-100">
+                <h5 class="fw-bold mb-3">User Status</h5>
+                <canvas id="usersChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Category-wise Products Chart -->
+        <div class="col-lg-4 col-md-12">
+            <div class="card shadow-sm rounded-4 p-3 h-100">
+                <h5 class="fw-bold mb-3">Products by Category</h5>
+                <canvas id="categoryChart" height="200"></canvas>
+            </div>
+        </div>
+
+    </div>
 
 </div>
 
 <script>
+    let allCategories = []; // Store all categories for search
+    let categoryChart;
 
     $(document).ready(function () {
         loadCategories();
+        renderCharts();
+
+        // ===== SEARCH FILTER =====
+        $("#searchCategory").on("input", function () {
+            const query = $(this).val().toLowerCase();
+            const filtered = allCategories.filter(c => c.categoryName.toLowerCase().includes(query));
+            renderCategories(filtered);
+            updateCategoryChart(filtered);
+        });
     });
 
+    // ================== LOAD CATEGORIES ==================
     function loadCategories() {
-
         $.ajax({
             url: "/api/AuthApi/GetCategories",
             type: "GET",
             success: function (res) {
-
-                $("#categoryContainer").empty();
-
-                $.each(res, function (i, item) {
-
-                    $("#categoryContainer").append(`
-                        <div class="col-lg-3 col-md-4 col-sm-6">
-                            <div class="card category-card shadow-sm rounded-4 overflow-hidden">
-
-                                <div class="card-img-wrapper position-relative"
-                                     onclick="openCategory(${item.categoryId})">
-
-                                    <img src="${item.imagepath}"
-                                         class="card-img-top img-fluid"
-                                         alt="${item.categoryName}">
-
-                                    <div class="overlay d-flex justify-content-center align-items-center">
-                                        <span class="text-white fw-bold">View</span>
-                                    </div>
-
-                                    <div class="action-buttons">
-                                        <button class="btn btn-sm btn-light"
-                                            onclick="event.stopPropagation(); editCategory(${item.categoryId}, '${item.categoryName}', '${item.imagepath}')">
-                                            ✏
-                                        </button>
-
-                                        <button class="btn btn-sm btn-danger"
-                                            onclick="event.stopPropagation(); deleteCategory(${item.categoryId})">
-                                            🗑
-                                        </button>
-                                    </div>
-
-                                </div>
-
-                                <div class="card-body text-center">
-                                    <h5 class="fw-bold">${item.categoryName}</h5>
-                                </div>
-
-                            </div>
-                        </div>
-                    `);
-                });
+                allCategories = res; // Save for search
+                renderCategories(res);
+                updateCategoryChart(res);
             }
         });
     }
 
-  
-    function openCategory(id) {
-        window.location.href = "/Admin/Product/" + id;
+    function renderCategories(categories) {
+        $("#categoryContainer").empty();
+        if (categories.length === 0) {
+            $("#categoryContainer").html("<h5 class='text-center'>No Categories Found</h5>");
+            return;
+        }
+
+        $.each(categories, function (i, item) {
+            $("#categoryContainer").append(`
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <div class="card category-card shadow-sm rounded-4 overflow-hidden">
+                        <div class="card-img-wrapper position-relative"
+                             onclick="openCategory(${item.categoryId})">
+                            <img src="${item.imagepath}" class="card-img-top img-fluid" alt="${item.categoryName}">
+                            <div class="overlay d-flex justify-content-center align-items-center">
+                                <span class="text-white fw-bold">View</span>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-light"
+                                    onclick="event.stopPropagation(); editCategory(${item.categoryId}, '${item.categoryName}', '${item.imagepath}')">
+                                    ✏
+                                </button>
+                                <button class="btn btn-sm btn-danger"
+                                    onclick="event.stopPropagation(); deleteCategory(${item.categoryId})">
+                                    🗑
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body text-center">
+                            <h5 class="fw-bold">${item.categoryName}</h5>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
     }
 
-    function editCategory(id, oldName, oldImage) {
+    function openCategory(id) { window.location.href = "/Admin/Product/" + id; }
 
+    function editCategory(id, oldName, oldImage) {
         Swal.fire({
             title: 'Edit Category',
             html: `
                 <input type="text" id="swalCategoryName" class="swal2-input"
                        value="${oldName}" placeholder="Category Name">
-
                 <input type="file" id="swalCategoryImage" class="swal2-file">
-
-                <img src="${oldImage}"
-                     style="width:100px;height:100px;margin-top:10px;border-radius:10px;"
-                     id="previewImage">
+                <img src="${oldImage}" style="width:100px;height:100px;margin-top:10px;border-radius:10px;" id="previewImage">
             `,
             showCancelButton: true,
             confirmButtonText: 'Update',
             preConfirm: () => {
-
                 let name = document.getElementById("swalCategoryName").value;
                 let file = document.getElementById("swalCategoryImage").files[0];
-
-                if (!name) {
-                    Swal.showValidationMessage("Category name is required");
-                    return false;
-                }
-
+                if (!name) { Swal.showValidationMessage("Category name is required"); return false; }
                 return { name: name, file: file };
             }
         }).then((result) => {
-
             if (result.isConfirmed) {
-
                 var formData = new FormData();
                 formData.append("categoryId", id);
                 formData.append("categoryName", result.value.name);
-
-                if (result.value.file != null) {
-                    formData.append("image", result.value.file);
-                }
+                if (result.value.file != null) formData.append("image", result.value.file);
 
                 $.ajax({
                     url: '/api/AuthApi/UpdateCategory',
@@ -124,33 +152,21 @@
                     contentType: false,
                     processData: false,
                     success: function () {
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Updated Successfully!',
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-
+                        Swal.fire({ icon: 'success', title: 'Updated Successfully!', timer: 1500, showConfirmButton: false });
                         loadCategories();
                     }
                 });
             }
         });
 
-       
         $(document).on("change", "#swalCategoryImage", function () {
             let reader = new FileReader();
-            reader.onload = function (e) {
-                $("#previewImage").attr("src", e.target.result);
-            }
+            reader.onload = function (e) { $("#previewImage").attr("src", e.target.result); }
             reader.readAsDataURL(this.files[0]);
         });
     }
 
-    // ================= DELETE CATEGORY =================
     function deleteCategory(id) {
-
         Swal.fire({
             title: 'Are you sure?',
             text: "This category will be permanently deleted!",
@@ -159,23 +175,13 @@
             confirmButtonColor: '#d33',
             confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
-
             if (result.isConfirmed) {
-                debugger
                 $.ajax({
                     url: '/api/AuthApi/DeleteCategory',
                     type: 'POST',
                     data: { id: id },
                     success: function () {
-                        console.log("czx",id)
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Deleted Successfully!',
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-
+                        Swal.fire({ icon: 'success', title: 'Deleted Successfully!', timer: 1500, showConfirmButton: false });
                         loadCategories();
                     }
                 });
@@ -183,10 +189,47 @@
         });
     }
 
+    // ================== CHARTS ==================
+    function renderCharts() {
+        // Monthly Sales Chart
+        new Chart(document.getElementById('salesChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Jan','Feb','Mar','Apr','May','Jun'],
+                datasets: [{ label: 'Sales', data: [120,150,170,140,180,200],
+                    backgroundColor:'rgba(54,162,235,0.5)', borderColor:'rgba(54,162,235,1)', borderWidth:1 }]
+            },
+            options:{ responsive:true, plugins:{ legend:{ position:'top' }, title:{ display:true, text:'Monthly Sales' } } }
+        });
+
+        // User Status Chart
+        new Chart(document.getElementById('usersChart'), {
+            type: 'doughnut',
+            data: { labels:['Active','Inactive','Pending'], datasets:[{ data:[50,30,20],
+                backgroundColor:['rgba(75,192,192,0.7)','rgba(255,99,132,0.7)','rgba(255,206,86,0.7)'], hoverOffset:4 }] },
+            options:{ responsive:true, plugins:{ legend:{ position:'bottom' }, title:{ display:true, text:'User Status' } } }
+        });
+
+        // Category Chart (initial empty)
+        categoryChart = new Chart(document.getElementById('categoryChart'), {
+            type: 'pie',
+            data: { labels: [], datasets:[{ label:'Products', data:[], backgroundColor:[] }] },
+            options:{ responsive:true, plugins:{ legend:{ position:'bottom' }, title:{ display:true, text:'Products by Category' } } }
+        });
+    }
+
+    function updateCategoryChart(categories) {
+        const labels = categories.map(c=>c.categoryName);
+        const data = categories.map(c=>Math.floor(Math.random()*50)+5); // Sample product count
+        const colors = labels.map(()=>`hsl(${Math.floor(Math.random()*360)},70%,60%)`);
+        categoryChart.data.labels = labels;
+        categoryChart.data.datasets[0].data = data;
+        categoryChart.data.datasets[0].backgroundColor = colors;
+        categoryChart.update();
+    }
 </script>
 
 <style>
-
     body {
         background-color: #f8f9fa;
     }
@@ -247,4 +290,9 @@
             font-size: 14px;
         }
 
+    canvas {
+        background: #ffffff;
+        border-radius: 10px;
+        padding: 10px;
+    }
 </style>

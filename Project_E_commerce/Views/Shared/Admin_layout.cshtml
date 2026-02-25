@@ -9,18 +9,67 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.6.9/dist/sweetalert2.min.js"></script>
 
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <style>
+        html, body {
+            height: 100%;
+            min-height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .d-flex {
+            min-height: 100vh; /* Full viewport height */
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background-color: #212529;
+            color: white;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+            .sidebar h4 {
+                color: #ffffff;
+            }
+
+            .sidebar .nav-link {
+                color: #ffffff;
+            }
+
+                .sidebar .nav-link:hover {
+                    background-color: rgba(255,255,255,0.1);
+                    border-radius: 5px;
+                }
+
+                .sidebar .nav-link.text-danger:hover {
+                    background-color: rgba(255,0,0,0.1);
+                }
+
+        /* Main Content */
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto; /* Scrollable if content exceeds viewport */
+            min-height: 100vh;
+        }
+    </style>
 </head>
 
 <body>
-
     <div class="d-flex">
 
         <!-- Sidebar -->
-        <div class="bg-dark text-white p-3 vh-100" style="width:250px;">
+        <div class="sidebar p-3">
             <h4 class="text-center mb-4">Admin Panel</h4>
 
             <ul class="nav flex-column">
-
                 <li class="nav-item mb-2">
                     <a class="nav-link text-white" href="/admin/dashboard">
                         📊 Dashboard
@@ -31,38 +80,33 @@
                         <span style="font-weight:bold;">+</span> Add Category
                     </a>
                 </li>
-               
-
                 <li class="nav-item mb-2">
                     <a class="nav-link text-white" href="/admin/AddProduct">
                         🛒 Add Product
                     </a>
                 </li>
-
+                <li class="nav-item mb-2">
+                    <a class="nav-link text-white" href="/admin/ShowAll">
+                        👥 Show All User
+                    </a>
+                </li>
+               
                 <li class="nav-item mt-4">
                     <a class="nav-link text-danger" href="/admin/logout">
                         🚪 Logout
                     </a>
                 </li>
-
+              
             </ul>
         </div>
 
         <!-- Main Content -->
-        <div class="flex-grow-1 p-4">
+        <div class="main-content">
             @RenderBody()
-
         </div>
 
     </div>
 
-  
-
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
 </body>
 </html>
-<script src="~/lib/jquery/dist/jquery.min.js"></script>
-<script>
-    $(document).ready(function(){
-
-    })
-</script>

@@ -24,6 +24,11 @@ namespace Project_E_commerce.Controllers
         {
             return View();
         }
+        public IActionResult ShowAll()
+        {
+            return View();
+        }
+
         [HttpGet]
         public async Task<IActionResult> Logout()
         {

@@ -5,13 +5,38 @@
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <style>
+    .top-counter-box {
+        position: fixed;
+        top: 15px;
+        right: 20px;
+        z-index: 999;
+        display: flex;
+        gap: 10px;
+    }
+
+    .counter-card {
+        background: linear-gradient(45deg,#36d1dc,#5b86e5);
+        color: white;
+        padding: 6px 14px;
+        border-radius: 25px;
+        font-size: 13px;
+        font-weight: 600;
+        min-width: 140px;
+        text-align: center;
+    }
+
+        .counter-card.cart {
+            background: linear-gradient(45deg,#ff416c,#ff4b2b);
+            cursor: pointer;
+        }
+
     .product-card {
-        border: none;
         border-radius: 15px;
+        transition: 0.3s;
         overflow: hidden;
-        transition: all 0.3s ease;
     }
 
         .product-card:hover {
@@ -22,11 +47,7 @@
     .product-img {
         height: 220px;
         object-fit: cover;
-        transition: 0.3s;
-    }
-
-    .product-card:hover .product-img {
-        transform: scale(1.05);
+        cursor: pointer;
     }
 
     .price-tag {
@@ -36,78 +57,290 @@
     }
 
     .buy-btn {
-        background: linear-gradient(45deg, #ff416c, #ff4b2b);
+        background: linear-gradient(45deg,#ff416c,#ff4b2b);
         border: none;
         color: white;
         border-radius: 30px;
         padding: 8px 20px;
-        transition: 0.3s;
     }
 
-        .buy-btn:hover {
-            background: linear-gradient(45deg, #ff4b2b, #ff416c);
-            transform: scale(1.05);
+    .stars {
+        color: #ccc;
+        cursor: pointer;
+        font-size: 18px;
+    }
+
+        .stars .active {
+            color: #ffc107;
+            transform: scale(1.2);
         }
+
+    .discount-badge {
+        position: absolute;
+        top: 10px;
+        left: -5px;
+        background: linear-gradient(45deg,#ff0000,#ff6a00);
+        color: white;
+        padding: 5px 12px;
+        font-size: 13px;
+        font-weight: bold;
+        border-radius: 0 20px 20px 0;
+    }
+
+    /* CART SIDEBAR */
+    .cart-sidebar {
+        position: fixed;
+        top: 0;
+        right: -400px;
+        width: 350px;
+        height: 100%;
+        background: white;
+        box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+        padding: 20px;
+        transition: 0.4s;
+        z-index: 1000;
+        overflow-y: auto;
+    }
+
+        .cart-sidebar.active {
+            right: 0;
+        }
+
+    .cart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .cart-footer {
+        margin-top: 20px;
+        border-top: 1px solid #ddd;
+        padding-top: 10px;
+    }
 </style>
 
-<h3 class="mb-4">Products</h3>
 
-<div class="row" id="productContainer"></div>
+
+<!-- TOP COUNTER -->
+<div class="top-counter-box">
+    <div class="counter-card">
+        📦 Available: <span id="totalAvailable">0</span>
+    </div>
+    <div class="counter-card cart" onclick="toggleCart()">
+        🛒 Added: <span id="totalCart">0</span>
+    </div>
+</div>
+
+<div class="container mt-5 pt-3">
+    <div class="row" id="productContainer"></div>
+</div>
+
+<!-- CART SIDEBAR -->
+<div id="cartSidebar" class="cart-sidebar">
+    <div class="cart-header">
+        <h5>🛒 My Cart</h5>
+        <button class="btn btn-sm btn-danger" onclick="toggleCart()">X</button>
+    </div>
+
+    <div id="cartDetails"></div>
+
+    <div class="cart-footer">
+        <h5>Total: ₹ <span id="overallTotal">0</span></h5>
+    </div>
+</div>
 
 <script>
     $(document).ready(function () {
 
         var categoryId = "@categoryId";
+        var allProducts = [];
+
+        loadCartUI();
 
         $.ajax({
             url: "/api/AuthApi/GetProductsByCategory/" + categoryId,
             type: "GET",
             success: function (res) {
 
-                $("#productContainer").empty();
-
-                if (res.length == 0) {
-                    $("#productContainer").html("<h5 class='text-center'>No Products Found</h5>");
-                    return;
-                }
-
-                $.each(res, function (i, item) {
-
-                    $("#productContainer").append(`
-                        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                            <div class="card product-card h-100 shadow-sm">
-
-                                <div class="overflow-hidden">
-                                    <img src="${item.imagepath}"
-                                         class="card-img-top product-img" />
-                                </div>
-
-                                <div class="card-body text-center d-flex flex-column">
-
-                                    <h6 class="fw-bold">${item.productname}</h6>
-
-                                    <p class="price-tag mb-3">₹ ${item.price}</p>
-
-                                    <div class="mt-auto">
-                                        <button class="btn buy-btn w-100"
-                                                onclick="buyProduct('${item.productname}', ${item.price})">
-                                            🛒 Buy Now
-                                        </button>
-                                    </div>
-
-                                </div>
-
-                            </div>
-                        </div>
-                    `);
-
-                });
+                allProducts = res;
+                animateAvailableCounter(allProducts.length);
+                renderProducts(allProducts);
             }
         });
 
+        function animateAvailableCounter(finalValue) {
+            let current = 0;
+            let interval = setInterval(function () {
+                current++;
+                $("#totalAvailable").text(current);
+                if (current >= finalValue) clearInterval(interval);
+            }, 30);
+        }
+
+        function renderProducts(products) {
+
+            $("#productContainer").empty();
+
+            $.each(products, function (i, item) {
+
+                var discount = Math.floor(Math.random() * 30) + 10;
+                var discountedPrice = Math.round(item.price - (item.price * discount / 100));
+                let savedRating = getRating(item.productname);
+
+                $("#productContainer").append(`
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                        <div class="card product-card h-100 shadow-sm position-relative p-2">
+
+                            <div class="discount-badge">${discount}% OFF</div>
+
+                            <img src="${item.imagepath}" class="card-img-top product-img"
+                                 onclick="openProductModal('${item.productname}', ${discountedPrice})"/>
+
+                            <div class="card-body text-center d-flex flex-column">
+
+                                <h6 class="fw-bold">${item.productname}</h6>
+
+                                <p style="text-decoration:line-through;color:#999;">
+                                    ₹ ${item.price}
+                                </p>
+
+                                <p class="price-tag">₹ ${discountedPrice}</p>
+
+                                <div class="stars mb-2" data-product="${item.productname}">
+                                    ${generateStars(savedRating)}
+                                </div>
+
+                                <button class="btn buy-btn w-100 mt-auto"
+                                        onclick="addToCart('${item.productname}', ${discountedPrice})">
+                                    🛒 Add to Cart
+                                </button>
+
+                            </div>
+                        </div>
+                    </div>
+                `);
+            });
+
+            activateStarEvents();
+        }
+
+        function generateStars(rating) {
+            let starsHtml = "";
+            for (let i = 1; i <= 5; i++) {
+                starsHtml += `<span class="${i <= rating ? 'active' : ''}" data-value="${i}">★</span>`;
+            }
+            return starsHtml;
+        }
+
+        function activateStarEvents() {
+            $(".stars span").click(function () {
+                let rating = $(this).data("value");
+                let product = $(this).parent().data("product");
+                saveRating(product, rating);
+                $(this).parent().html(generateStars(rating));
+                activateStarEvents();
+            });
+        }
+
+        function saveRating(product, rating) {
+            let ratings = JSON.parse(localStorage.getItem("productRatings") || "{}");
+            ratings[product] = rating;
+            localStorage.setItem("productRatings", JSON.stringify(ratings));
+        }
+
+        function getRating(product) {
+            let ratings = JSON.parse(localStorage.getItem("productRatings") || "{}");
+            return ratings[product] || 0;
+        }
     });
 
-    function buyProduct(name, price) {
-        alert("You selected: " + name + " | Price: ₹ " + price);
+    // CART LOGIC
+    function toggleCart() {
+        $("#cartSidebar").toggleClass("active");
+    }
+
+    function addToCart(name, price) {
+        let cart = JSON.parse(localStorage.getItem("cartItems") || "[]");
+        let existing = cart.find(x => x.name === name);
+
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            cart.push({ name: name, price: price, qty: 1 });
+        }
+
+        localStorage.setItem("cartItems", JSON.stringify(cart));
+        loadCartUI();
+    }
+
+    function increaseQty(name) {
+        let cart = JSON.parse(localStorage.getItem("cartItems") || "[]");
+        let item = cart.find(x => x.name === name);
+        if (item) item.qty++;
+        localStorage.setItem("cartItems", JSON.stringify(cart));
+        loadCartUI();
+    }
+
+    function decreaseQty(name) {
+        let cart = JSON.parse(localStorage.getItem("cartItems") || "[]");
+        let item = cart.find(x => x.name === name);
+
+        if (item) {
+            item.qty--;
+            if (item.qty <= 0) {
+                cart = cart.filter(x => x.name !== name);
+            }
+        }
+
+        localStorage.setItem("cartItems", JSON.stringify(cart));
+        loadCartUI();
+    }
+
+    function removeProduct(name) {
+        let cart = JSON.parse(localStorage.getItem("cartItems") || "[]");
+        cart = cart.filter(x => x.name !== name);
+        localStorage.setItem("cartItems", JSON.stringify(cart));
+        loadCartUI();
+    }
+
+    function loadCartUI() {
+
+        let cart = JSON.parse(localStorage.getItem("cartItems") || "[]");
+
+        let totalQty = 0;
+        let overallTotal = 0;
+        let html = "";
+
+        if (cart.length === 0) {
+            html = "<p>Your cart is empty</p>";
+        }
+
+        cart.forEach(item => {
+
+            totalQty += item.qty;
+            let totalPrice = item.qty * item.price;
+            overallTotal += totalPrice;
+
+            html += `
+                <div class="border p-2 mb-2 rounded bg-white">
+                    <strong>${item.name}</strong><br/>
+                    ₹ ${item.price} × ${item.qty} = ₹ ${totalPrice}
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-success" onclick="increaseQty('${item.name}')">+</button>
+                        <button class="btn btn-sm btn-warning" onclick="decreaseQty('${item.name}')">-</button>
+                        <button class="btn btn-sm btn-danger" onclick="removeProduct('${item.name}')">Remove</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        $("#totalCart").text(totalQty);
+        $("#cartDetails").html(html);
+        $("#overallTotal").text(overallTotal);
+    }
+
+    function openProductModal(name, price) {
+        alert("Product: " + name + " | ₹ " + price);
     }
 </script>

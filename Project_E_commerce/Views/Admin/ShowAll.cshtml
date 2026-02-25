@@ -1,0 +1,259 @@
+﻿@{
+    Layout = "Admin_layout";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    .page-title {
+        font-weight: 700;
+        margin-bottom: 25px;
+    }
+
+    .table-card {
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    }
+
+    .action-btn {
+        padding: 5px 12px;
+        font-size: 13px;
+        border-radius: 20px;
+    }
+
+    .modal-header {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+    }
+</style>
+
+<div class="container mt-4">
+
+    <h3 class="page-title">👥 Manage Users</h3>
+
+    <div class="card table-card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0 text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Password</th>
+                        <th width="180">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="userTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= EDIT USER MODAL ================= -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close bg-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <div class="mb-3">
+                    <label>Name</label>
+                    <input type="text" id="editName" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label>Email (Readonly)</label>
+                    <input type="text" id="editEmail" class="form-control" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label>Password</label>
+                    <input type="text" id="editPassword" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label>Role</label>
+                    <select id="editRole" class="form-control">
+                        <option value="User">User</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="updateUser()">Save Changes</button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+
+    $(document).ready(function () {
+        loadUsers();
+    });
+
+    // ================= LOAD USERS =================
+    function loadUsers() {
+
+        $.ajax({
+            url: "/api/AuthApi/GetAllUsers",
+            type: "GET",
+            success: function (res) {
+
+                $("#userTable").empty();
+
+                $.each(res, function (i, user) {
+
+                    let badgeColor = user.role.toLowerCase() === "admin" ? "danger" : "primary";
+
+                    $("#userTable").append(`
+                        <tr>
+                            <td>${user.name}</td>
+                            <td>${user.email}</td>
+                            <td>
+                                <span class="badge bg-${badgeColor}">
+                                    ${user.role}
+                                </span>
+                            </td>
+                            <td>••••••</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning action-btn me-1"
+                                    onclick="openEditModal('${user.name}','${user.email}','${user.password}','${user.role}')">
+                                    ✏ Edit
+                                </button>
+
+                                <button class="btn btn-sm btn-danger action-btn"
+                                    onclick="deleteUser('${user.email}')">
+                                    🗑 Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+
+                });
+
+            },
+            error: function () {
+                Swal.fire("Error", "Unable to load users", "error");
+            }
+        });
+
+    }
+
+
+    // ================= OPEN MODAL + PREFILL =================
+       function openEditModal(name, email, password, role) {
+
+        $("#editName").val(name);
+        $("#editEmail").val(email);
+        $("#editPassword").val(password);
+
+       
+        var cleanRole = role.trim().toLowerCase();
+
+       
+        $("#editRole option").prop("selected", false);
+
+       
+        $("#editRole option").each(function () {
+            if ($(this).val().toLowerCase() === cleanRole) {
+                $(this).prop("selected", true);
+            }
+        });
+
+        var modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+        modal.show();
+    }
+
+    // ================= UPDATE USER =================
+    function updateUser() {
+
+        var user = {
+            name: $("#editName").val(),
+            email: $("#editEmail").val(),
+            password: $("#editPassword").val(),
+            role: $("#editRole").val()
+        };
+
+        $.ajax({
+            url: "/api/AuthApi/UpdateUser",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(user),
+            success: function () {
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Updated!',
+                    text: 'User updated successfully',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                loadUsers();
+            },
+            error: function () {
+                Swal.fire('Error', 'Update failed', 'error');
+            }
+        });
+
+    }
+
+
+    // ================= DELETE USER =================
+    function deleteUser(email) {
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "User will be permanently deleted!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete!'
+        }).then((result) => {
+
+            if (result.isConfirmed) {
+
+                $.ajax({
+                    url: "/api/AuthApi/DeleteUser",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(email),
+                    success: function () {
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted!',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+
+                        loadUsers();
+                    },
+                    error: function () {
+                        Swal.fire("Error", "Delete failed", "error");
+                    }
+                });
+
+            }
+
+        });
+
+    }
+
+</script>

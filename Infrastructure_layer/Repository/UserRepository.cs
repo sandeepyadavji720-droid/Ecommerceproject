@@ -36,5 +36,62 @@ namespace Infrastructure_layer.Repository
            int res= cmd.ExecuteNonQuery();
             return res;
         }
+        public List<UserModel> GetAllUsers()
+        {
+            List<UserModel> list = new List<UserModel>();
+
+            using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand("sp_Users", con);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@action", 5);
+
+            con.Open();
+            SqlDataReader dr = cmd.ExecuteReader();
+
+            while (dr.Read())
+            {
+                list.Add(new UserModel
+                {
+                    name = dr["name"].ToString(),
+                    email = dr["email"].ToString(),
+                    role = dr["role"].ToString(),
+                    password = dr["password"].ToString(),
+                   
+                });
+            }
+
+            return list;
+        }
+
+
+        public int UpdateUser(UserModel user)
+        {
+            using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand("sp_Users", con);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@name", user.name);
+            cmd.Parameters.AddWithValue("@email", user.email);
+            cmd.Parameters.AddWithValue("@password", user.password);
+            cmd.Parameters.AddWithValue("@role", user.role);
+            cmd.Parameters.AddWithValue("@action", 6);
+
+            con.Open();
+            return cmd.ExecuteNonQuery();
+        }
+
+        public int DeleteUser(string email)
+        {
+            using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
+            using SqlCommand cmd = new SqlCommand("sp_Users", con);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@email", email);
+            cmd.Parameters.AddWithValue("@action", 7);
+
+            con.Open();
+            return cmd.ExecuteNonQuery();
+        }
     }
 }

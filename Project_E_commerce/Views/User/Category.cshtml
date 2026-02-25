@@ -6,6 +6,18 @@
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 
 <style>
+    /* ================= SEARCH BAR ================= */
+    .search-box {
+        max-width: 400px;
+        margin: 0 auto 30px;
+    }
+
+        .search-box input {
+            border-radius: 30px;
+            padding: 10px 20px;
+        }
+
+    /* ================= CATEGORY CARDS ================= */
     .category-card {
         border: none;
         border-radius: 20px;
@@ -48,51 +60,165 @@
             transform: scale(1.05);
             box-shadow: 0 8px 15px rgba(0,0,0,0.3);
         }
+
+    /* ================= RECENTLY SEEN ================= */
+    .recent-card {
+        background: linear-gradient(135deg, #a8edea, #fed6e3);
+        border-radius: 15px;
+        padding: 15px;
+        color: #333;
+        margin-bottom: 25px;
+        font-weight: 600;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    .recent-item {
+        position: relative;
+        cursor: pointer;
+        text-align: center;
+    }
+
+        .recent-item img {
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            transition: 0.3s;
+            display: block;
+            margin: 0 auto;
+        }
+
+    .remove-btn {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 12px;
+        cursor: pointer;
+        padding: 0;
+        z-index: 10;
+    }
 </style>
 
+<!-- ================= RECENTLY SEEN ================= -->
+<div class="container" id="recentWrapper" style="display:none;">
+    <div class="recent-card">
+        <h5>🕒 Recently Seen Categories</h5>
+        <div class="row" id="recentCategories"></div>
+    </div>
+</div>
+
 <h3 class="text-center fw-bold mb-4">✨ Explore Categories</h3>
+
+<!-- ================= SEARCH ================= -->
+<div class="search-box">
+    <input type="text" id="categorySearch" class="form-control"
+           placeholder="🔍 Search Category...">
+</div>
 
 <div class="container">
     <div class="row" id="categoryContainer"></div>
 </div>
 
 <script>
+    var allCategories = [];
+
     $(document).ready(function () {
 
         $.ajax({
             url: "/api/AuthApi/GetCategories",
             type: "GET",
             success: function (res) {
-
-                $("#categoryContainer").empty();
-
-                $.each(res, function (i, item) {
-
-                    $("#categoryContainer").append(`
-                        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                            <div class="card category-card shadow-sm">
-
-                                <img src="${item.imagepath}" class="card-img-top">
-
-                                <div class="overlay text-center">
-                                    <h5 class="fw-bold">${item.categoryName}</h5>
-                                    <button class="btn explore-btn mt-2"
-                                            onclick="openCategory(${item.categoryId})">
-                                        🔍 Explore Category
-                                    </button>
-                                </div>
-
-                            </div>
-                        </div>
-                    `);
-
-                });
+                allCategories = res;
+                renderCategories(res);
+                loadRecentCategories();
             }
+        });
+
+        // LIVE SEARCH
+        $("#categorySearch").on("keyup", function () {
+            var value = $(this).val().toLowerCase();
+
+            var filtered = allCategories.filter(c =>
+                c.categoryName.toLowerCase().includes(value)
+            );
+
+            renderCategories(filtered);
         });
 
     });
 
-    function openCategory(id) {
+    function renderCategories(data) {
+        $("#categoryContainer").empty();
+
+        if (data.length === 0) {
+            $("#categoryContainer").html("<h5 class='text-center'>No Category Found</h5>");
+            return;
+        }
+
+        $.each(data, function (i, item) {
+            $("#categoryContainer").append(`
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                    <div class="card category-card shadow-sm">
+                        <img src="${item.imagepath}" class="card-img-top">
+                        <div class="overlay text-center">
+                            <h5 class="fw-bold">${item.categoryName}</h5>
+                            <button class="btn explore-btn mt-2"
+                                onclick="openCategory(${item.categoryId}, '${item.categoryName}', '${item.imagepath}')">
+                                🔍 Explore Category
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+    }
+
+    function openCategory(id, name, image) {
+        let recent = JSON.parse(localStorage.getItem("recentCategories") || "[]");
+        recent = recent.filter(c => c.id !== id);
+        recent.unshift({ id: id, name: name, image: image });
+        if (recent.length > 5) recent.pop();
+        localStorage.setItem("recentCategories", JSON.stringify(recent));
+        loadRecentCategories();
+        window.location.href = "/User/Products/" + id;
+    }
+
+    function loadRecentCategories() {
+        let recent = JSON.parse(localStorage.getItem("recentCategories") || "[]");
+        let container = $("#recentCategories");
+
+        if (recent.length === 0) {
+            $("#recentWrapper").hide();
+            return;
+        }
+
+        $("#recentWrapper").show();
+        container.empty();
+
+        $.each(recent, function(i, item){
+            container.append(`
+                <div class="col-lg-2 col-md-3 col-4 mb-2 recent-item">
+                    <button class="remove-btn" onclick="removeRecent(${item.id})">×</button>
+                    <img src="${item.image}" onclick="goToCategory(${item.id})">
+                    <p style="font-size:12px;">${item.name}</p>
+                </div>
+            `);
+        });
+    }
+
+    function removeRecent(id) {
+        let recent = JSON.parse(localStorage.getItem("recentCategories") || "[]");
+        recent = recent.filter(c => c.id !== id);
+        localStorage.setItem("recentCategories", JSON.stringify(recent));
+        loadRecentCategories();
+    }
+
+    function goToCategory(id) {
         window.location.href = "/User/Products/" + id;
     }
 </script>

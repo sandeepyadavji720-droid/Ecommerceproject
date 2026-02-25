@@ -6,10 +6,26 @@
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<style>
+    #formCard {
+        transition: all 0.5s ease;
+    }
+
+    .success-message {
+        display: none;
+        text-align: center;
+        padding: 40px;
+        background: #f8fff8;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+</style>
+
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-5 col-md-8">
 
+            <!-- FORM CARD -->
             <div class="card shadow-lg p-4 rounded-4" id="formCard">
                 <h4 class="text-center text-primary mb-4">Add Product</h4>
 
@@ -62,6 +78,14 @@
                 </form>
             </div>
 
+            <!-- SUCCESS MESSAGE -->
+            <div class="success-message mt-4" id="successMessage">
+                <h4 class="text-success">✅ Product Added Successfully!</h4>
+                <button class="btn btn-outline-primary mt-3" onclick="showFormAgain()">
+                    Add Another Product
+                </button>
+            </div>
+
         </div>
     </div>
 </div>
@@ -69,26 +93,24 @@
 <script>
     $(document).ready(function () {
 
-      
+        // Load Categories
         $.ajax({
             url: "/api/AuthApi/GetCategories",
             type: "GET",
             success: function (res) {
-                console.log(res);
+
                 $("#categoryDropdown").empty();
                 $("#categoryDropdown").append('<option value="">-- Select Category --</option>');
 
                 $.each(res, function (i, item) {
-
                     $("#categoryDropdown").append(
                         '<option value="' + item.categoryId + '">' + item.categoryName + '</option>'
                     );
-
                 });
             }
         });
 
-        
+        // Submit Form
         $("#productForm").submit(function (e) {
 
             e.preventDefault();
@@ -110,12 +132,22 @@
                         icon: 'success',
                         title: 'Product Added!',
                         text: 'Product saved successfully.',
-                        timer: 2000,
+                        timer: 1500,
                         showConfirmButton: false
                     });
 
-                    $("#productForm")[0].reset();
-                    $("#submitBtn").prop("disabled", false).html("Save Product");
+                    setTimeout(function () {
+
+                        // Slide Up Form
+                        $("#formCard").slideUp(600, function () {
+
+                            // Show Success Card
+                            $("#successMessage").fadeIn(500);
+
+                        });
+
+                    }, 1200);
+
                 },
 
                 error: function (res) {
@@ -133,4 +165,16 @@
         });
 
     });
+
+    // Show form again
+    function showFormAgain() {
+
+        $("#productForm")[0].reset();
+
+        $("#successMessage").hide();
+
+        $("#formCard").slideDown(600);
+
+        $("#submitBtn").prop("disabled", false).html("Save Product");
+    }
 </script>
