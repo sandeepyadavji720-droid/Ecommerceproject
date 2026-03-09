@@ -1,12 +1,11 @@
 ﻿using Application_layer.Interface;
 using Domain_layer.Model;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Reflection;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Threading.Tasks;
+using System.Text;
 
 namespace Project_E_commerce.Controllers
 {
@@ -20,7 +19,18 @@ namespace Project_E_commerce.Controllers
         private readonly IProductRepository _prepo;
         private readonly IGetAllCategoryRepository _gcrepo;
         private readonly IGetCategoryWiseProduct _gcwrepo;
-        public AuthApiController(IUserRepository repo, ILoginRepository lrepo, ICategoryRepository crepo, IProductRepository prepo, IGetAllCategoryRepository gcrepo, IGetCategoryWiseProduct gcwrepo)
+        private readonly IConfiguration _configuration;
+        private readonly ISingleUserRepository _irepo;
+
+        public AuthApiController(
+            IUserRepository repo,
+            ILoginRepository lrepo,
+            ICategoryRepository crepo,
+            IProductRepository prepo,
+            IGetAllCategoryRepository gcrepo,
+            IGetCategoryWiseProduct gcwrepo,
+            IConfiguration configuration,
+            ISingleUserRepository irepo)
         {
             _repo = repo;
             _lrepo = lrepo;
@@ -28,9 +38,13 @@ namespace Project_E_commerce.Controllers
             _prepo = prepo;
             _gcrepo = gcrepo;
             _gcwrepo = gcwrepo;
+            _configuration = configuration;
+            _irepo = irepo;
         }
 
+        // ================= USERS =================
 
+        [Authorize(Roles = "admin")]
         [HttpGet("GetAllUsers")]
         public IActionResult GetAllUsers()
         {
@@ -38,6 +52,7 @@ namespace Project_E_commerce.Controllers
             return Ok(data);
         }
 
+        [Authorize(Roles = "admin")]
         [HttpPost("UpdateUser")]
         public IActionResult UpdateUser([FromBody] UserModel user)
         {
@@ -45,6 +60,7 @@ namespace Project_E_commerce.Controllers
             return Ok(res);
         }
 
+        [Authorize(Roles = "admin")]
         [HttpPost("DeleteUser")]
         public IActionResult DeleteUser([FromBody] string email)
         {
@@ -52,127 +68,22 @@ namespace Project_E_commerce.Controllers
             return Ok(res);
         }
 
+        // ================= REGISTER =================
 
-
-        [HttpGet("GetProductById/{id}")]
-        public IActionResult GetProductById(int id)
-        {
-            var data = _prepo.GetProductById(id);
-
-            if (data == null)
-                return NotFound();
-
-            return Ok(data);
-        }
-
-
-        [HttpPost("UpdateProduct")]
-        public IActionResult UpdateProduct([FromForm] ProductModel model)
-        {
-           
-           
-            if (model.image != null)
-            {
-                string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/content/products");
-
-                if (!Directory.Exists(folderPath))
-                {
-                    Directory.CreateDirectory(folderPath);
-                }
-
-                string fileName = Guid.NewGuid().ToString() + Path.GetExtension(model.image.FileName);
-                string fullPath = Path.Combine(folderPath, fileName);
-
-                using (var stream = new FileStream(fullPath, FileMode.Create))
-                {
-                    model.image.CopyTo(stream);
-                }
-
-               
-                model.imagepath = "/content/products/" + fileName;
-            }
-            else if (!string.IsNullOrEmpty(model.imagepath))
-            {
-               
-                model.imagepath = model.imagepath;
-            }
-
-           
-            _prepo.UpdateProduct(model);
-
-            return Ok();
-        }
-
-
-        [HttpPost("DeleteProduct/{id}")]
-        public IActionResult DeleteProduct(int id)
-        {
-            _prepo.DeleteProduct(id);
-            return Ok();
-        }
-
-
-
-
-
-        [HttpPost("UpdateCategory")]
-        public IActionResult UpdateCategory([FromForm] CategoryModel model)
-        {
-            if (model.image == null)
-                return BadRequest("Image not received");
-
-
-
-            string fileName = model.image.FileName;
-
-            string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/content/images");
-
-            if (!Directory.Exists(folder))
-                Directory.CreateDirectory(folder);
-
-            string fullPath = Path.Combine(folder, fileName);
-
-            using (var stream = new FileStream(fullPath, FileMode.Create))
-            {
-                model.image.CopyTo(stream);
-            }
-
-
-            model.imagepath = "/content/images/" + fileName;
-
-        
-
-        var result = _crepo.UpdateCategory(model);
-
-            return Ok();
-        }
-
-
-        [HttpPost("DeleteCategory")]
-        public IActionResult DeleteCategory([FromForm]int id)
-        {
-            var result = _crepo.DeleteCategory(id);
-
-            if (result > 0)
-                return Ok(new { success = true, message = "Deleted Successfully" });
-
-            return BadRequest();
-        }
-
-
-
-
-
+        [AllowAnonymous]
         [HttpPost("Register")]
         public IActionResult Register([FromBody] UserModel user)
         {
-          int res= _repo.Register(user);
+            int res = _repo.Register(user);
             return Ok(res);
         }
+
+        // ================= LOGIN =================
+
+        [AllowAnonymous]
         [HttpPost("Login")]
-        public async Task<IActionResult> Login([FromBody] LoginModel model)
+        public IActionResult Login([FromBody] LoginModel model)
         {
-            // Call repository
             var res = _lrepo.Login(model);
 
             if (res == null || res.Count == 0)
@@ -180,34 +91,54 @@ namespace Project_E_commerce.Controllers
                 return Unauthorized(new { message = "Invalid email or password" });
             }
 
-            // Get the first user from list (there should only be one)
             var user = res.First();
 
-            // Create claims for cookie authentication
-            var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Email, user.email),
-            new Claim(ClaimTypes.Role, user.role)  // role comes from DB
-        };
+            var claims = new[]
+            {
+        new Claim(ClaimTypes.Email, user.email),
+        new Claim(ClaimTypes.Role, user.role)
+    };
 
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_configuration["Jwt:Key"])
+            );
 
-            // Sign in user with cookie authentication
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claimsPrincipal);
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Return role for frontend redirect
-            return Ok(new { role = user.role });
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(60),
+                signingCredentials: creds
+            );
+
+            var jwtToken = new JwtSecurityTokenHandler().WriteToken(token);
+
+            
+            Response.Cookies.Append("jwt", jwtToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Expires = DateTime.Now.AddMinutes(60)
+            });
+
+            return Ok(new
+            {
+                token = jwtToken,
+                role = user.role,
+                email = user.email
+            });
         }
+        // ================= CATEGORY =================
 
-
+        [Authorize(Roles = "admin")]
         [HttpPost("AddCategory")]
         public IActionResult AddCategory([FromForm] CategoryModel category)
         {
             if (category.image == null)
                 return BadRequest("Image not received");
-
-
 
             string fileName = category.image.FileName;
 
@@ -223,14 +154,26 @@ namespace Project_E_commerce.Controllers
                 category.image.CopyTo(stream);
             }
 
-         
             category.imagepath = "/content/images/" + fileName;
 
-           int res= _crepo.AddCategory(category);
+            int res = _crepo.AddCategory(category);
 
             return Ok(res);
         }
-       
+
+        [Authorize(Roles = "admin")]
+        [HttpPost("DeleteCategory")]
+        public IActionResult DeleteCategory([FromForm] int id)
+        {
+            var result = _crepo.DeleteCategory(id);
+
+            if (result > 0)
+                return Ok(new { success = true, message = "Deleted Successfully" });
+
+            return BadRequest();
+        }
+
+        [AllowAnonymous]
         [HttpGet("GetCategories")]
         public IActionResult GetCategories(ProductModel model)
         {
@@ -238,8 +181,9 @@ namespace Project_E_commerce.Controllers
             return Ok(res);
         }
 
+        // ================= PRODUCT =================
 
-
+        [Authorize(Roles = "admin")]
         [HttpPost("AddProduct")]
         public IActionResult AddProduct([FromForm] ProductModel product)
         {
@@ -260,21 +204,135 @@ namespace Project_E_commerce.Controllers
                 product.image.CopyTo(stream);
             }
 
-           
             product.imagepath = "/content/products/" + fileName;
 
-           int res= _prepo.AddProduct(product);
+            int res = _prepo.AddProduct(product);
 
             return Ok(res);
         }
+
+        [AllowAnonymous]
+        [HttpGet("GetProductById/{id}")]
+        public IActionResult GetProductById(int id)
+        {
+            var data = _prepo.GetProductById(id);
+
+            if (data == null)
+                return NotFound();
+
+            return Ok(data);
+        }
+
+        [Authorize(Roles = "admin")]
+        [HttpPost("DeleteProduct/{id}")]
+        public IActionResult DeleteProduct(int id)
+        {
+            _prepo.DeleteProduct(id);
+            return Ok();
+        }
+
+        [AllowAnonymous]
         [HttpGet("GetProductsByCategory/{id}")]
         public IActionResult GetProductsByCategory(int? id)
         {
-            
-                var data = _gcwrepo.GetCateWiseProduct(id);
-                return Ok(data);
-            }
-           
+            var data = _gcwrepo.GetCateWiseProduct(id);
+            return Ok(data);
+        }
 
+        [Authorize(Roles = "admin")]
+        [HttpPost("UpdateCategory")]
+        public IActionResult UpdateCategory([FromForm] CategoryModel category)
+        {
+            string imagePath = category.imagepath;
+
+            if (category.image != null)
+            {
+                string fileName = Guid.NewGuid() + Path.GetExtension(category.image.FileName);
+
+                string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/content/images");
+
+                if (!Directory.Exists(folder))
+                    Directory.CreateDirectory(folder);
+
+                string fullPath = Path.Combine(folder, fileName);
+
+                using (var stream = new FileStream(fullPath, FileMode.Create))
+                {
+                    category.image.CopyTo(stream);
+                }
+
+                imagePath = "/content/images/" + fileName;
+            }
+
+            category.imagepath = imagePath;
+
+            int res = _crepo.UpdateCategory(category);
+
+            return Ok(res);
+        }
+        [Authorize(Roles = "admin")]
+        [HttpPost("UpdateProduct")]
+        public IActionResult UpdateProduct([FromForm] ProductModel product)
+        {
+            string imagePath = product.imagepath;
+
+            if (product.image != null)
+            {
+                string fileName = Guid.NewGuid() + Path.GetExtension(product.image.FileName);
+
+                string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/content/products");
+
+                if (!Directory.Exists(folder))
+                    Directory.CreateDirectory(folder);
+
+                string fullPath = Path.Combine(folder, fileName);
+
+                using (var stream = new FileStream(fullPath, FileMode.Create))
+                {
+                    product.image.CopyTo(stream);
+                }
+
+                imagePath = "/content/products/" + fileName;
+            }
+
+            product.imagepath = imagePath;
+
+            int res = _prepo.UpdateProduct(product);
+
+            return Ok(res);
+        }
+        //[Authorize]
+        [HttpGet("GetProfile")]
+        public IActionResult GetProfile()
+        {
+            string email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+            var user = _irepo.GetUserByEmail(email);
+
+            return Ok(user);
+        }
+        //[Authorize]
+        [HttpPost("UpdateProfile")]
+        public IActionResult UpdateProfile([FromBody] UserModel model)
+        {
+            string email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+            model.email = email;
+            
+
+            int res = _irepo.UpdateProfile(model);
+
+            return Ok(res);
+        }
+        //[Authorize]
+        [HttpPost("DeleteProfile")]
+        public IActionResult DeleteProfile()
+        {
+            string email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+            int res = _irepo.DeleteUser(email);
+
+            return Ok(res);
+        }
     }
 }

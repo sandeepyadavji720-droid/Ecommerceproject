@@ -18,7 +18,7 @@ namespace Infrastructure_layer.Repository
         {
             _connection = connection;
         }
-        public UserModel GetSingleUser(string email)
+        public UserModel GetUserByEmail(string email)
         {
             using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
             using SqlCommand cmd = new SqlCommand("sp_Users", con);
@@ -41,21 +41,22 @@ namespace Infrastructure_layer.Repository
             return null; 
         }
 
-        public void UpdateUser(string name, string email)
+        public int UpdateProfile(UserModel user)
         {
             using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
             using SqlCommand cmd = new SqlCommand("sp_Users", con);
             cmd.CommandType = CommandType.StoredProcedure;
 
-            cmd.Parameters.AddWithValue("@name", name);
-            cmd.Parameters.AddWithValue("@email", email);
+            cmd.Parameters.AddWithValue("@name", user.name);
+            cmd.Parameters.AddWithValue("@email", user.email);
             cmd.Parameters.AddWithValue("@action", 3); 
 
             con.Open();
-            cmd.ExecuteNonQuery();
+          int res=  cmd.ExecuteNonQuery();
+            return res;
         }
 
-        public void DeleteUser(string email)
+        public int DeleteUser(string email)
         {
             using SqlConnection con = new SqlConnection(_connection.GetConnectionString("DefaultConnection"));
             using SqlCommand cmd = new SqlCommand("sp_Users", con);
@@ -65,7 +66,8 @@ namespace Infrastructure_layer.Repository
             cmd.Parameters.AddWithValue("@action", 4);
 
             con.Open();
-            cmd.ExecuteNonQuery();
+          int res=  cmd.ExecuteNonQuery();
+            return res;
         }
 
 

@@ -7,7 +7,7 @@ using System.Security.Claims;
 
 namespace Project_E_commerce.Controllers
 {
-    [Authorize(Roles = "user")]
+//    [Authorize(Roles = "user")]
     public class UserController : Controller
     {
         private readonly ISingleUserRepository _userService;
@@ -18,7 +18,7 @@ namespace Project_E_commerce.Controllers
         [HttpPost]
         public IActionResult UpdateProfile(string name, string email)
         {
-            _userService.UpdateUser(name, email);
+            //_userService.UpdateUser(name, email);
             return Json(new { success = true });
         }
 
@@ -36,12 +36,12 @@ namespace Project_E_commerce.Controllers
             if (string.IsNullOrEmpty(email))
                 return RedirectToAction("Login", "Account");
 
-            var userProfile = _userService.GetSingleUser(email);
+            //var userProfile = _userService.GetSingleUser(email);
 
-            if (userProfile == null)
-                return NotFound("User not found");
+            //if (userProfile == null)
+            //    return NotFound("User not found");
 
-            return View(userProfile);
+            return View();
         }
 
         public IActionResult Index()
@@ -62,15 +62,15 @@ namespace Project_E_commerce.Controllers
             ViewBag.CategoryId = id;
             return View();
         }
-       
         [HttpGet]
-        public async Task<IActionResult> Logout()
+        public IActionResult Logout()
         {
+          
+            Response.Cookies.Delete("jwt");
 
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-
+          
             return RedirectToAction("Login", "Home");
         }
+
     }
 }

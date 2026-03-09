@@ -1,0 +1,46 @@
+<div class="container mt-5">
+  <div class="mx-auto" style="max-width:400px">
+    <h3 class="text-center">Registration Form</h3>
+
+    <form (ngSubmit)="onSubmit()" #form="ngForm">
+
+      <div class="mb-3">
+        <input type="text"
+               class="form-control"
+               placeholder="Name"
+               name="name"
+               [(ngModel)]="model.name"
+               required>
+      </div>
+
+      <div class="mb-3">
+        <input type="email"
+               class="form-control"
+               placeholder="Email"
+               name="email"
+               [(ngModel)]="model.email"
+               required>
+      </div>
+
+      <div class="mb-3">
+        <input type="password"
+               class="form-control"
+               placeholder="Password"
+               name="password"
+               [(ngModel)]="model.password"
+               required>
+      </div>
+
+      <div class="mb-3">
+        <input type="text"
+               class="form-control"
+               placeholder="Role"
+               name="role"
+               [(ngModel)]="model.role">
+      </div>
+
+      <button class="btn btn-primary w-100">Register</button>
+
+    </form>
+  </div>
+</div>

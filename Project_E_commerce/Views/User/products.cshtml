@@ -26,11 +26,16 @@
         font-weight: 600;
         min-width: 140px;
         text-align: center;
+        cursor: pointer;
     }
 
         .counter-card.cart {
             background: linear-gradient(45deg,#ff416c,#ff4b2b);
-            cursor: pointer;
+        }
+
+        .counter-card.wishlist {
+            background: linear-gradient(45deg,#ff9a9e,#fad0c4);
+            color: #000;
         }
 
     .product-card {
@@ -87,7 +92,6 @@
         border-radius: 0 20px 20px 0;
     }
 
-    /* CART SIDEBAR */
     .cart-sidebar {
         position: fixed;
         top: 0;
@@ -106,27 +110,22 @@
             right: 0;
         }
 
-    .cart-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-    }
-
-    .cart-footer {
-        margin-top: 20px;
-        border-top: 1px solid #ddd;
-        padding-top: 10px;
+    .wishlist-item:hover {
+        background: #f8f9fa;
+        cursor: pointer;
     }
 </style>
 
-
-
-<!-- TOP COUNTER -->
+<!-- TOP COUNTERS -->
 <div class="top-counter-box">
     <div class="counter-card">
         📦 Available: <span id="totalAvailable">0</span>
     </div>
+
+    <div class="counter-card wishlist" onclick="toggleWishlist()">
+        ❤️ Wishlist: <span id="totalWishlist">0</span>
+    </div>
+
     <div class="counter-card cart" onclick="toggleCart()">
         🛒 Added: <span id="totalCart">0</span>
     </div>
@@ -138,52 +137,64 @@
 
 <!-- CART SIDEBAR -->
 <div id="cartSidebar" class="cart-sidebar">
-    <div class="cart-header">
+    <div class="cart-header d-flex justify-content-between align-items-center mb-2">
         <h5>🛒 My Cart</h5>
         <button class="btn btn-sm btn-danger" onclick="toggleCart()">X</button>
     </div>
-
     <div id="cartDetails"></div>
+    <hr />
+    <h5>Total: ₹ <span id="overallTotal">0</span></h5>
+</div>
 
-    <div class="cart-footer">
-        <h5>Total: ₹ <span id="overallTotal">0</span></h5>
+<!-- WISHLIST SIDEBAR -->
+<div id="wishlistSidebar" class="cart-sidebar">
+    <div class="cart-header d-flex justify-content-between align-items-center mb-2">
+        <h5>❤️ My Wishlist</h5>
+        <button class="btn btn-sm btn-danger" onclick="toggleWishlist()">X</button>
+    </div>
+    <div id="wishlistDetails"></div>
+</div>
+
+<!-- PRODUCT MODAL -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalProductName"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalProductImage" src="" class="img-fluid mb-3" style="max-height:200px; object-fit:cover;">
+                <p class="price-tag">₹ <span id="modalProductPrice"></span></p>
+                <button class="btn buy-btn w-100 mt-2" id="modalAddToCart">🛒 Add to Cart</button>
+                <button class="btn btn-outline-danger w-100 mt-2" id="modalAddToWishlist">❤️ Add to Wishlist</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
     $(document).ready(function () {
-
         var categoryId = "@categoryId";
         var allProducts = [];
 
         loadCartUI();
+        loadWishlistUI();
 
+        // Load Products from API
         $.ajax({
             url: "/api/AuthApi/GetProductsByCategory/" + categoryId,
             type: "GET",
             success: function (res) {
-
                 allProducts = res;
-                animateAvailableCounter(allProducts.length);
+                $("#totalAvailable").text(allProducts.length);
                 renderProducts(allProducts);
             }
         });
 
-        function animateAvailableCounter(finalValue) {
-            let current = 0;
-            let interval = setInterval(function () {
-                current++;
-                $("#totalAvailable").text(current);
-                if (current >= finalValue) clearInterval(interval);
-            }, 30);
-        }
-
         function renderProducts(products) {
-
             $("#productContainer").empty();
-
             $.each(products, function (i, item) {
-
                 var discount = Math.floor(Math.random() * 30) + 10;
                 var discountedPrice = Math.round(item.price - (item.price * discount / 100));
                 let savedRating = getRating(item.productname);
@@ -195,27 +206,28 @@
                             <div class="discount-badge">${discount}% OFF</div>
 
                             <img src="${item.imagepath}" class="card-img-top product-img"
-                                 onclick="openProductModal('${item.productname}', ${discountedPrice})"/>
+                                onclick="openProductModal('${item.productname}', ${discountedPrice}, '${item.imagepath}')"/>
 
                             <div class="card-body text-center d-flex flex-column">
-
                                 <h6 class="fw-bold">${item.productname}</h6>
-
                                 <p style="text-decoration:line-through;color:#999;">
                                     ₹ ${item.price}
                                 </p>
-
                                 <p class="price-tag">₹ ${discountedPrice}</p>
 
                                 <div class="stars mb-2" data-product="${item.productname}">
                                     ${generateStars(savedRating)}
                                 </div>
 
-                                <button class="btn buy-btn w-100 mt-auto"
-                                        onclick="addToCart('${item.productname}', ${discountedPrice})">
-                                    🛒 Add to Cart
+                                <button class="btn btn-outline-danger w-100 mb-2"
+                                    onclick="addToWishlist('${item.productname}', ${discountedPrice}, '${item.imagepath}')">
+                                    ❤️ Add to Wishlist
                                 </button>
 
+                                <button class="btn buy-btn w-100 mt-auto"
+                                    onclick="addToCart('${item.productname}', ${discountedPrice})">
+                                    🛒 Add to Cart
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -255,84 +267,68 @@
         }
     });
 
-    // CART LOGIC
-    function toggleCart() {
-        $("#cartSidebar").toggleClass("active");
-    }
+    // ================= CART FUNCTIONS =================
+    function toggleCart() { $("#cartSidebar").toggleClass("active"); }
 
-    function addToCart(name, price) {
+    function addToCart(name, price){
         let cart = JSON.parse(localStorage.getItem("cartItems") || "[]");
         let existing = cart.find(x => x.name === name);
-
-        if (existing) {
-            existing.qty += 1;
-        } else {
-            cart.push({ name: name, price: price, qty: 1 });
-        }
-
+        if(existing) existing.qty++;
+        else cart.push({ name:name, price:price, qty:1 });
         localStorage.setItem("cartItems", JSON.stringify(cart));
         loadCartUI();
     }
 
-    function increaseQty(name) {
+    function increaseQty(name){
         let cart = JSON.parse(localStorage.getItem("cartItems") || "[]");
         let item = cart.find(x => x.name === name);
-        if (item) item.qty++;
+        if(item) item.qty++;
         localStorage.setItem("cartItems", JSON.stringify(cart));
         loadCartUI();
     }
 
-    function decreaseQty(name) {
+    function decreaseQty(name){
         let cart = JSON.parse(localStorage.getItem("cartItems") || "[]");
         let item = cart.find(x => x.name === name);
-
-        if (item) {
+        if(item){
             item.qty--;
-            if (item.qty <= 0) {
+            if(item.qty <= 0){
                 cart = cart.filter(x => x.name !== name);
             }
         }
-
         localStorage.setItem("cartItems", JSON.stringify(cart));
         loadCartUI();
     }
 
-    function removeProduct(name) {
+    function removeProduct(name){
         let cart = JSON.parse(localStorage.getItem("cartItems") || "[]");
         cart = cart.filter(x => x.name !== name);
         localStorage.setItem("cartItems", JSON.stringify(cart));
         loadCartUI();
     }
 
-    function loadCartUI() {
-
+    function loadCartUI(){
         let cart = JSON.parse(localStorage.getItem("cartItems") || "[]");
-
         let totalQty = 0;
         let overallTotal = 0;
         let html = "";
 
-        if (cart.length === 0) {
-            html = "<p>Your cart is empty</p>";
-        }
-
-        cart.forEach(item => {
-
+        cart.forEach(item=>{
             totalQty += item.qty;
             let totalPrice = item.qty * item.price;
             overallTotal += totalPrice;
 
             html += `
-                <div class="border p-2 mb-2 rounded bg-white">
-                    <strong>${item.name}</strong><br/>
-                    ₹ ${item.price} × ${item.qty} = ₹ ${totalPrice}
-                    <div class="mt-2">
-                        <button class="btn btn-sm btn-success" onclick="increaseQty('${item.name}')">+</button>
-                        <button class="btn btn-sm btn-warning" onclick="decreaseQty('${item.name}')">-</button>
-                        <button class="btn btn-sm btn-danger" onclick="removeProduct('${item.name}')">Remove</button>
-                    </div>
+            <div class="border p-2 mb-2 rounded">
+                <strong>${item.name}</strong><br/>
+                ₹ ${item.price} × ${item.qty} = ₹ ${totalPrice}
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-success" onclick="increaseQty('${item.name}')">+</button>
+                    <button class="btn btn-sm btn-warning" onclick="decreaseQty('${item.name}')">−</button>
+                    <button class="btn btn-sm btn-danger" onclick="removeProduct('${item.name}')">Remove</button>
+
                 </div>
-            `;
+            </div>`;
         });
 
         $("#totalCart").text(totalQty);
@@ -340,7 +336,79 @@
         $("#overallTotal").text(overallTotal);
     }
 
-    function openProductModal(name, price) {
-        alert("Product: " + name + " | ₹ " + price);
+    // ================= WISHLIST FUNCTIONS =================
+    function toggleWishlist(){ $("#wishlistSidebar").toggleClass("active"); }
+
+    function addToWishlist(name, price, imagepath){
+        let wishlist = JSON.parse(localStorage.getItem("wishlistItems") || "[]");
+        if(!wishlist.find(x=>x.name===name)){
+            wishlist.push({ name:name, price:price, imagepath:imagepath||'' });
+        }
+        localStorage.setItem("wishlistItems", JSON.stringify(wishlist));
+        loadWishlistUI();
     }
+
+    function removeWishlistItem(name){
+        let wishlist = JSON.parse(localStorage.getItem("wishlistItems") || "[]");
+        wishlist = wishlist.filter(x=>x.name!==name);
+        localStorage.setItem("wishlistItems", JSON.stringify(wishlist));
+        loadWishlistUI();
+    }
+
+    function loadWishlistUI(){
+        let wishlist = JSON.parse(localStorage.getItem("wishlistItems") || "[]");
+        let html = "";
+
+        wishlist.forEach(item=>{
+            html += `
+            <div class="border p-2 mb-2 rounded bg-white wishlist-item"
+                 onclick="openProductModal('${item.name}', ${item.price}, '${item.imagepath}')">
+                <strong>${item.name}</strong><br/>
+                ₹ ${item.price}
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-danger"
+                        onclick="event.stopPropagation(); removeWishlistItem('${item.name}')">
+                        Remove
+                    </button>
+                </div>
+            </div>`;
+        });
+
+        if(wishlist.length===0) html = "<p>Your wishlist is empty</p>";
+
+        $("#totalWishlist").text(wishlist.length);
+        $("#wishlistDetails").html(html);
+    }
+
+    // ================= PRODUCT MODAL =================
+    function openProductModal(name, price, imagepath){
+        $("#modalProductName").text(name);
+        $("#modalProductPrice").text(price);
+        if(imagepath) $("#modalProductImage").attr("src", imagepath);
+
+        $("#modalAddToCart").off("click").on("click", function(){
+            addToCart(name, price);
+            bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+        });
+
+        $("#modalAddToWishlist").off("click").on("click", function(){
+            addToWishlist(name, price, imagepath);
+            bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+        });
+
+        var modal = new bootstrap.Modal(document.getElementById('productModal'));
+        modal.show();
+    }
+
+    // CLOSE SIDEBAR ON OUTSIDE CLICK
+    $(document).mouseup(function(e){
+        var wishlist = $("#wishlistSidebar");
+        if(!wishlist.is(e.target) && wishlist.has(e.target).length===0 && wishlist.hasClass("active")){
+            wishlist.removeClass("active");
+        }
+        var cart = $("#cartSidebar");
+        if(!cart.is(e.target) && cart.has(e.target).length===0 && cart.hasClass("active")){
+            cart.removeClass("active");
+        }
+    });
 </script>

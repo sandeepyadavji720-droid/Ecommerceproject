@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Project_E_commerce.Controllers
 {
-    [Authorize(Roles = "admin")]
+    //[Authorize(Roles = "admin")]
     public class AdminController : Controller
     {
         public IActionResult Index()
@@ -30,13 +30,13 @@ namespace Project_E_commerce.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Logout()
+        public IActionResult Logout()
         {
-          
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+           
+            Response.Cookies.Delete("jwt");
 
-            
-            return RedirectToAction("Login", "Home"); 
+          
+            return RedirectToAction("Login", "Home");
         }
 
         public IActionResult Product(int id)

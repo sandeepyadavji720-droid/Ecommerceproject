@@ -1,6 +1,8 @@
 using Application_layer.Interface;
 using Infrastructure_layer.Repository;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace Project_E_commerce
 {
@@ -10,10 +12,10 @@ namespace Project_E_commerce
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container
+            // Add services
             builder.Services.AddControllersWithViews();
 
-            // Add your repositories
+            // Repositories
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<ILoginRepository, LoginRepository>();
             builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -22,29 +24,64 @@ namespace Project_E_commerce
             builder.Services.AddScoped<IGetCategoryWiseProduct, GetCatWiseProductRepository>();
             builder.Services.AddScoped<ISingleUserRepository, SingleUserRepository>();
 
-            // Add Session support (optional but useful)
-            builder.Services.AddDistributedMemoryCache();
-            builder.Services.AddSession(options =>
+            // CORS for Angular
+            builder.Services.AddCors(options =>
             {
-                options.IdleTimeout = TimeSpan.FromMinutes(30);
-                options.Cookie.HttpOnly = true;
-                options.Cookie.IsEssential = true;
+                options.AddPolicy("AllowAngular",
+                    policy =>
+                    {
+                        policy.WithOrigins("http://localhost:4200")
+                              .AllowAnyHeader()
+                              .AllowAnyMethod()
+                              .AllowCredentials();
+                    });
             });
 
-            // Add Cookie Authentication
-            builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(options =>
+            // JWT Authentication
+            var jwtKey = builder.Configuration["Jwt:Key"];
+
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
                 {
-                    options.LoginPath = "/Home/Login";          
-                    options.AccessDeniedPath = "/home/login"; 
-                    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+                    options.RequireHttpsMetadata = false;
+                    options.SaveToken = true;
+
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration["Jwt:Audience"],
+
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(jwtKey))
+                    };
+
+                    // ?? THIS PART IS IMPORTANT (READ TOKEN FROM COOKIE)
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var token = context.Request.Cookies["jwt"];
+
+                            if (!string.IsNullOrEmpty(token))
+                            {
+                                context.Token = token;
+                            }
+
+                            return Task.CompletedTask;
+                        }
+                    };
                 });
-            // Needed for role-based [Authorize]
+
+            // Authorization
             builder.Services.AddAuthorization();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");
@@ -52,13 +89,16 @@ namespace Project_E_commerce
             }
 
             app.UseHttpsRedirection();
+
             app.UseStaticFiles();
 
             app.UseRouting();
 
-            app.UseSession();           // Session must come before authentication
-            app.UseAuthentication();    // Enable authentication
-            app.UseAuthorization();     // Enable role-based authorization
+            app.UseCors("AllowAngular");
+
+            app.UseAuthentication();   // JWT Verify
+
+            app.UseAuthorization();    // Role Verify
 
             app.MapControllerRoute(
                 name: "default",

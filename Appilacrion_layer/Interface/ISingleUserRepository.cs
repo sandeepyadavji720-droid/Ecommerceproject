@@ -9,8 +9,8 @@ namespace Application_layer.Interface
 {
     public interface ISingleUserRepository
     {
-        UserModel GetSingleUser(string email);
-        void UpdateUser(string name, string email);
-        void DeleteUser(string email);
+        UserModel GetUserByEmail(string email);
+        int UpdateProfile(UserModel user);
+        int DeleteUser(string email);
     }
 }
